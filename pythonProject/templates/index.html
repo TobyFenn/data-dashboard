@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>celeb data dashboard</h1>
+    <h1>genies magic data dashboard</h1>
     <div class="container">
         <form method="GET" action="/">
             <select name="collection" onchange="this.form.submit()" class="collection-selector">
@@ -28,6 +28,7 @@
                     <span id="fileLabel"></span>
                 </div>
             </form>
+<!--            <h2>Number of Entries: {{ item_count }}</h2>-->
             <ul>
                 {% for item in items %}
                     <li>{{ item.item }}</li>
