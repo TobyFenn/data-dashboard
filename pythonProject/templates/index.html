@@ -27,12 +27,14 @@
             <h1>process</h1>
             <form method="POST" action="/?collection={{ selected_collection }}">
                 <div class="button-group">
-                    <button class="store-btn" type="submit">store in cloud</button>
+                    <button class="store-btn" type="submit">store me in cloud</button>
                     <input type="file" id="pdfUpload" name="pdfUpload" accept="application/pdf" style="display: none;" onchange="handleFileSelect(event, '{{ selected_collection }}')">
                     <label for="pdfUpload" class="upload-btn">upload PDF</label>
+                    <button class="store-btn" type="button" id="processPdfButton">process PDF</button>
                     <textarea id="itemTextarea" name="item" placeholder="manually enter quote from {{ selected_collection }}" rows="3" autocomplete="off"></textarea>
                 </div>
             </form>
+            <div id="apiResponse"></div> <!-- Container to display the API response -->
             <ul>
 <!--                fill every extracted quote here with this formatting
                 {% for item in items %}
@@ -88,6 +90,28 @@
                 this.closest('form').submit(); // Submit the form
             }
          });
+document.getElementById('processPdfButton').addEventListener('click', function () {
+    var xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            var response = JSON.parse(xhr.responseText);
+            console.log("API Response:", response);  // Log the response to the console
+
+            // Check if the expected data is present before accessing it
+            if (response.choices && response.choices.length > 0 && response.choices[0].message) {
+                document.getElementById('apiResponse').innerHTML = response.choices[0].message.content;
+            } else {
+                document.getElementById('apiResponse').innerHTML = "Unexpected response format";
+            }
+        } else {
+            document.getElementById('apiResponse').innerHTML = "Error processing request";
+        }
+    };
+    xhr.open('POST', '/process_pdf', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send();
+});
+
     </script>
 </body>
 </html>
