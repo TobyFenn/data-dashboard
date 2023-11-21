@@ -10,25 +10,30 @@
 <body>
     <h1>celeb data dashboard</h1>
     <div class="container">
-        {% for collection, items in data.items() %}
-            <div class="box">
-                <form method="POST" action="/">
-                    <input type="text" name="item_{{ collection }}" placeholder="enter quote from {{ collection }}" autocomplete="off">
-                    <div class="button-group">
-                        <button class="store-btn" type="submit">store in cloud</button>
-                        <input type="file" id="pdfUpload_{{ collection }}" name="pdfUpload" accept="application/pdf" style="display: none;" onchange="handleFileSelect(event, '{{ collection }}')">
-                        <label for="pdfUpload_{{ collection }}" class="upload-btn">upload PDF</label>
-                        <button type="button" onclick="downloadCSV('{{ collection }}')" class="download-btn">download CSV</button>
-                        <span id="fileLabel_{{ collection }}"></span>
-                    </div>
-                </form>
-                <ul>
-                    {% for item in items %}
-                        <li>{{ item.item }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endfor %}
+        <form method="GET" action="/">
+            <select name="collection" onchange="this.form.submit()" class="collection-selector">
+                {% for collection in collections %}
+                    <option value="{{ collection }}" {% if collection == selected_collection %}selected{% endif %}>{{ collection }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        <div class="box">
+            <form method="POST" action="/?collection={{ selected_collection }}">
+                <input type="text" name="item" placeholder="enter quote from {{ selected_collection }}" autocomplete="off">
+                <div class="button-group">
+                    <button class="store-btn" type="submit">store in cloud</button>
+                    <input type="file" id="pdfUpload" name="pdfUpload" accept="application/pdf" style="display: none;" onchange="handleFileSelect(event, '{{ selected_collection }}')">
+                    <label for="pdfUpload" class="upload-btn">upload PDF</label>
+                    <button type="button" onclick="downloadCSV('{{ selected_collection }}')" class="download-btn">download CSV</button>
+                    <span id="fileLabel"></span>
+                </div>
+            </form>
+            <ul>
+                {% for item in items %}
+                    <li>{{ item.item }}</li>
+                {% endfor %}
+            </ul>
+        </div>
     </div>
     <script>
         function downloadCSV(collectionName) {

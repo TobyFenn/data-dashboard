@@ -13,22 +13,20 @@ app = Flask(__name__)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    collections = ['justin bieber', 'paris hilton', 'ice spice']
-    data = {}
+    collections = [col.id for col in db.collections()]  # Fetch all collection names
+    selected_collection = request.args.get('collection') or collections[0]
 
     if request.method == 'POST':
-        for collection in collections:
-            item = request.form.get(f'item_{collection}')
-            if item:
-                db.collection(collection).add({'item': item})
+        item = request.form.get('item')
+        if item:
+            db.collection(selected_collection).add({'item': item})
+        # Redirect while preserving the selected collection
+        return redirect(url_for('index', collection=selected_collection))
 
-        return redirect(url_for('index'))
+    items = db.collection(selected_collection).stream()
+    data = [doc.to_dict() for doc in items]
 
-    for collection in collections:
-        docs = db.collection(collection).stream()
-        data[collection] = [doc.to_dict() for doc in docs]
-
-    return render_template('index.html', data=data)
+    return render_template('index.html', collections=collections, selected_collection=selected_collection, items=data)
 
 @app.route('/download/<collection_name>')
 def download_csv(collection_name):

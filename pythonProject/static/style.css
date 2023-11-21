@@ -98,3 +98,23 @@ button {
     font-size: 14px;
     color: #555;
 }
+
+.collection-selector {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 16px;
+    margin-bottom: 20px; /* Space between selector and box */
+    width: 200px; /* Adjust as needed */
+    margin: auto; /* Center the selector */
+    display: block; /* Makes it a block element */
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
