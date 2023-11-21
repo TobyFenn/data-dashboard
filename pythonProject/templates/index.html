@@ -30,7 +30,7 @@
                     <button class="store-btn" type="submit">store in cloud</button>
                     <input type="file" id="pdfUpload" name="pdfUpload" accept="application/pdf" style="display: none;" onchange="handleFileSelect(event, '{{ selected_collection }}')">
                     <label for="pdfUpload" class="upload-btn">upload PDF</label>
-                    <input type="text" name="item" placeholder="manually enter quote from {{ selected_collection }}" autocomplete="off">
+                    <textarea id="itemTextarea" name="item" placeholder="manually enter quote from {{ selected_collection }}" rows="3" autocomplete="off"></textarea>
                 </div>
             </form>
             <ul>
@@ -81,6 +81,13 @@
                 label.textContent = 'File selected: ' + selectedFile.name;
             }
         }
+
+        document.getElementById('itemTextarea').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // Prevent a newline from being added
+                this.closest('form').submit(); // Submit the form
+            }
+         });
     </script>
 </body>
 </html>
