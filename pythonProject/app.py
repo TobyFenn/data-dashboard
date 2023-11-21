@@ -1,48 +1,22 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
 import firebase_admin
 from firebase_admin import credentials, firestore
 import io
 import csv
-from flask import Response
-import requests
 import traceback
 import openai
-
 import json
 
-# Your API key
-api_key = "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"
-
-# Endpoint URL
-endpoint_url = "https://api.openai.com/v1/chat/completions"
-
-# Data payload for the request
-data = {
-    "model": "gpt-3.5-turbo",
-    "messages": [{"role": "user", "content": "Say this is a test!"}],
-    "temperature": 0.7
-}
-
-# Headers with your API key
-headers = {
-    "Authorization": f"Bearer {api_key}",
-    "Content-Type": "application/json"
-}
-
-# Make the POST request to the API
-response = requests.post(endpoint_url, json=data, headers=headers)
-
-# Get the response JSON
-response_json = response.json()
-
-# Print the response
-print(response_json)
-
+# Initialize Firebase Admin
 cred = credentials.Certificate("celeb-data-a3288-firebase-adminsdk-2ujgb-bfddc51066.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+# Initialize Flask App
 app = Flask(__name__)
+
+# Set your OpenAI API key
+openai.api_key = "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"
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -62,50 +36,26 @@ def index():
     return render_template('index.html', collections=collections, selected_collection=selected_collection, items=data)
 
 # Function to call OpenAI API
+# Function to call OpenAI API with streaming
 def call_openai_api():
-    # Endpoint URL
-    endpoint_url = "https://api.openai.com/v1/chat/completions"
-
-    # Data payload for the request with system message and user message
-    data = {
-        "model": "gpt-3.5-turbo",
-        "messages": [
-            {"role": "system", "content": "Act as a pirate who loves the sea."},
-            {"role": "user", "content": "Do you like the sea?"}
-        ],
-        "temperature": 0.7
-    }
-
-    # Headers with your API key
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
     try:
-        response = openai.ChatCompletion.create(
+        stream = openai.chat.completions.create(
             model='gpt-3.5-turbo',
-            messages=[
-                {'role': 'user', 'content': "What's 1+1? Answer in one word."}
-            ],
+            messages=[{'role': 'system', 'content': "Act as a sea pirate."},
+                      {'role': 'user', 'content': 'Do you love the sea?'}],
             temperature=0,
             stream=True
         )
 
         def generate():
-            try:
-                for chunk in response:
-                    print("Yielding chunk:", chunk)  # For debugging
-                    yield f"data: {json.dumps(chunk)}\n\n"
-            except Exception as e:
-                print("Error during streaming from API:", e)
-                traceback.print_exc()
+            for part in stream:
+                content = part.choices[0].delta.content or ""
+                yield f"data: {json.dumps({'content': content})}\n\n"
 
         return generate
     except Exception as e:
         print("Error in call_openai_api:", e)
         traceback.print_exc()
-
 
 @app.route('/process_pdf', methods=['GET'])
 def process_pdf():

@@ -93,21 +93,24 @@
 
 document.getElementById('processPdfButton').addEventListener('click', function () {
     var eventSource = new EventSource('/process_pdf');
-eventSource.onmessage = function(event) {
-    console.log("Received data:", event.data);
-    var response = JSON.parse(event.data);
-        if (response.choices && response.choices.length > 0 && response.choices[0].message) {
-            document.getElementById('apiResponse').innerHTML += response.choices[0].message.content;
+    eventSource.onmessage = function(event) {
+        console.log("Received data:", event.data);
+        var response = JSON.parse(event.data);
+
+        // Check if the 'content' key is present in the response
+        if (response.hasOwnProperty('content')) {
+            document.getElementById('apiResponse').innerHTML += response.content;
         } else {
             document.getElementById('apiResponse').innerHTML += "Received unexpected data format";
         }
     };
+
     eventSource.onerror = function(error) {
         console.log("Error during streaming:", error);
-        document.getElementById('apiResponse').innerHTML += "Error during streaming";
         eventSource.close();
     };
 });
+
 </script>
 
 
