@@ -5,6 +5,9 @@ import io
 import csv
 from flask import Response
 import requests
+import traceback
+import openai
+
 import json
 
 # Your API key
@@ -60,14 +63,16 @@ def index():
 
 # Function to call OpenAI API
 def call_openai_api():
-
     # Endpoint URL
     endpoint_url = "https://api.openai.com/v1/chat/completions"
 
-    # Data payload for the request
+    # Data payload for the request with system message and user message
     data = {
         "model": "gpt-3.5-turbo",
-        "messages": [{"role": "user", "content": "Say this is a test!"}],
+        "messages": [
+            {"role": "system", "content": "Act as a pirate who loves the sea."},
+            {"role": "user", "content": "Do you like the sea?"}
+        ],
         "temperature": 0.7
     }
 
@@ -77,19 +82,37 @@ def call_openai_api():
         "Content-Type": "application/json"
     }
 
-    # Make the POST request to the API
-    response = requests.post(endpoint_url, json=data, headers=headers)
+    try:
+        response = openai.ChatCompletion.create(
+            model='gpt-3.5-turbo',
+            messages=[
+                {'role': 'user', 'content': "What's 1+1? Answer in one word."}
+            ],
+            temperature=0,
+            stream=True
+        )
 
-    # Return the response JSON
-    return response.json()
+        def generate():
+            try:
+                for chunk in response:
+                    print("Yielding chunk:", chunk)  # For debugging
+                    yield f"data: {json.dumps(chunk)}\n\n"
+            except Exception as e:
+                print("Error during streaming from API:", e)
+                traceback.print_exc()
 
-@app.route('/process_pdf', methods=['POST'])
+        return generate
+    except Exception as e:
+        print("Error in call_openai_api:", e)
+        traceback.print_exc()
+
+
+@app.route('/process_pdf', methods=['GET'])
 def process_pdf():
-    # Call the OpenAI API
-    response_json = call_openai_api()
+    response_stream = call_openai_api()
+    return Response(response_stream(), content_type='text/event-stream')
 
-    # Return the response
-    return jsonify(response_json)
+
 
 @app.route('/download/<collection_name>')
 def download_csv(collection_name):
