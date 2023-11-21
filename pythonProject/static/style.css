@@ -6,6 +6,10 @@ body {
     background-color: light_gray;
 }
 
+h1 {
+    margin-top: 0;
+}
+
 .container {
     display: flex;
     justify-content: center;
@@ -21,6 +25,13 @@ body {
     width: 300px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
+/* CSS */
+.box ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 0; /* Adjust this margin to match the other buttons */
+}
+
 ul {
     list-style: none;
     padding: 0;
@@ -99,6 +110,10 @@ button {
     color: #555;
 }
 
+.collection-btn.selected {
+    background-color: black;
+}
+
 .collection-selector {
     padding: 10px;
     border: 1px solid #ddd;
@@ -113,8 +128,8 @@ button {
 
 .container {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    align-items: top;
     justify-content: center;
 }
 

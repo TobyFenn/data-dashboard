@@ -8,34 +8,68 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>genies magic data dashboard</h1>
+    <h1 style="margin-top: 20px;">genies magic data dashboard ✨</h1>
     <div class="container">
-        <form method="GET" action="/">
-            <select name="collection" onchange="this.form.submit()" class="collection-selector">
-                {% for collection in collections %}
-                    <option value="{{ collection }}" {% if collection == selected_collection %}selected{% endif %}>{{ collection }}</option>
-                {% endfor %}
-            </select>
-        </form>
         <div class="box">
+                <h1>select</h1>
+            <ul class="top-down-list">
+                {% for collection in collections %}
+                    <li>
+                        <form method="GET" action="/">
+                            <button class="collection-btn{% if collection == selected_collection %} selected{% endif %}" type="submit" name="collection" value="{{ collection }}">{{ collection }}</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="box">
+            <h1>process</h1>
             <form method="POST" action="/?collection={{ selected_collection }}">
-                <input type="text" name="item" placeholder="enter quote from {{ selected_collection }}" autocomplete="off">
                 <div class="button-group">
                     <button class="store-btn" type="submit">store in cloud</button>
                     <input type="file" id="pdfUpload" name="pdfUpload" accept="application/pdf" style="display: none;" onchange="handleFileSelect(event, '{{ selected_collection }}')">
                     <label for="pdfUpload" class="upload-btn">upload PDF</label>
-                    <button type="button" onclick="downloadCSV('{{ selected_collection }}')" class="download-btn">download CSV</button>
-                    <span id="fileLabel"></span>
+                    <input type="text" name="item" placeholder="manually enter quote from {{ selected_collection }}" autocomplete="off">
                 </div>
             </form>
-<!--            <h2>Number of Entries: {{ item_count }}</h2>-->
             <ul>
+<!--                fill every extracted quote here with this formatting
                 {% for item in items %}
                     <li>{{ item.item }}</li>
+                {% endfor %} -->
+            </ul>
+        </div>
+
+        <!-- Center box (duplicate) -->
+        <div class="box">
+            <h1>view</h1>
+            <form method="POST" action="/?collection={{ selected_collection }}">
+                <div class="button-group">
+                    <button type="button" style="margin-bottom: 10px;" onclick="downloadCSV('{{ selected_collection }}')" class="download-btn">copy to clipboard</button>
+                </div>
+            </form>
+            <ul>
+                {% for item in items %}
+                    <li >{{ item.item }}</li>
                 {% endfor %}
             </ul>
         </div>
+
+        <!-- Rightmost box (with "download CSV" button) -->
+        <div class="box">
+            <h1>download</h1>
+            <form method="POST" action="/?collection={{ selected_collection }}">
+                <div class="button-group">
+                    <button type="button" onclick="downloadCSV('{{ selected_collection }}')" class="download-btn">download CSV</button>
+                </div>
+            </form>
+            <ul>
+                <!-- Content of the rightmost box (with "download CSV" button) -->
+            </ul>
+        </div>
     </div>
+
     <script>
         function downloadCSV(collectionName) {
             window.location.href = `/download/${collectionName}`;
@@ -47,7 +81,7 @@
                 label.textContent = 'File selected: ' + selectedFile.name;
             }
         }
-
     </script>
 </body>
 </html>
+
