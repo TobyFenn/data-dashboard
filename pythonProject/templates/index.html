@@ -30,7 +30,7 @@
                     <button class="store-btn" type="submit">store me in cloud</button>
                     <input type="file" id="pdfUpload" name="pdfUpload" accept="application/pdf" style="display: none;" onchange="handleFileSelect(event, '{{ selected_collection }}')">
                     <label for="pdfUpload" class="upload-btn">upload PDF</label>
-                    <button class="store-btn" type="button" id="processPdfButton">process PDF</button>
+                    <button class="store-btn" type="button" id="processPdfButton" disabled style="background-color: grey; cursor: not-allowed;">process PDF</button>
                     <textarea id="itemTextarea" name="item" placeholder="manually enter quote from {{ selected_collection }}" rows="3" autocomplete="off"></textarea>
                 </div>
             </form>
@@ -76,13 +76,15 @@
         function downloadCSV(collectionName) {
             window.location.href = `/download/${collectionName}`;
         }
-        function handleFileSelect(event, collectionName) {
-            var selectedFile = event.target.files[0];
-            if (selectedFile) {
-                var label = document.getElementById('fileLabel_' + collectionName);
-                label.textContent = 'File selected: ' + selectedFile.name;
-            }
+    function handleFileSelect(event, collectionName) {
+        var selectedFile = event.target.files[0];
+        if (selectedFile) {
+            var processPdfButton = document.getElementById('processPdfButton');
+            processPdfButton.disabled = false;
+            processPdfButton.style.backgroundColor = ""; // Reset to default color
+            processPdfButton.style.cursor = "pointer"; // Change cursor to indicate it's clickable
         }
+    }
 
         document.getElementById('itemTextarea').addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -91,30 +93,65 @@
             }
          });
 
-document.getElementById('processPdfButton').addEventListener('click', function () {
-    var eventSource = new EventSource('/process_pdf');
-    eventSource.onmessage = function(event) {
-        console.log("Received data:", event.data);
-        var response = JSON.parse(event.data);
+    function startColorCycle(button) {
+        const colors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"];
+        let currentColorIndex = 0;
 
-        // Check if the 'content' key is present in the response
-        if (response.hasOwnProperty('content')) {
-            document.getElementById('apiResponse').innerHTML += response.content;
-        } else {
-            document.getElementById('apiResponse').innerHTML += "Received unexpected data format";
+        button.style.transition = "background-color 0.5s linear";
+
+        const cycleColors = () => {
+            button.style.backgroundColor = colors[currentColorIndex];
+            currentColorIndex = (currentColorIndex + 1) % colors.length;
+        };
+
+        // Start cycling colors
+        const intervalId = setInterval(cycleColors, 500);
+
+        return intervalId; // Return the interval ID so it can be cleared later
+    }
+
+    function stopColorCycle(button, intervalId) {
+        clearInterval(intervalId);
+        button.style.backgroundColor = ""; // Reset to default style
+        button.style.transition = ""; // Reset transition
+    }
+
+    document.getElementById('processPdfButton').addEventListener('click', function () {
+        if (!this.disabled) {
+            const processPdfButton = this;
+            const colorCycleIntervalId = startColorCycle(processPdfButton);
+
+            var eventSource = new EventSource('/process_pdf');
+            eventSource.onmessage = function(event) {
+                console.log("Received data:", event.data);
+                var response = JSON.parse(event.data);
+
+                if (response.hasOwnProperty('content')) {
+                    document.getElementById('apiResponse').innerHTML += response.content;
+                } else {
+                    document.getElementById('apiResponse').innerHTML += "Received unexpected data format";
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                console.log("Error during streaming:", error);
+                document.getElementById('apiResponse').innerHTML += "Error during streaming";
+                stopColorCycle(processPdfButton, colorCycleIntervalId);
+                processPdfButton.disabled = true;
+                processPdfButton.style.backgroundColor = "grey";
+                processPdfButton.style.cursor = "not-allowed";
+                eventSource.close();
+            };
+
+            eventSource.onclose = function() {
+                stopColorCycle(processPdfButton, colorCycleIntervalId);
+                processPdfButton.disabled = true;
+                processPdfButton.style.backgroundColor = "grey";
+                processPdfButton.style.cursor = "not-allowed";
+            };
         }
-    };
-
-    eventSource.onerror = function(error) {
-        console.log("Error during streaming:", error);
-        eventSource.close();
-    };
-});
-
+    });
 </script>
-
-
-    </script>
 </body>
 </html>
 
