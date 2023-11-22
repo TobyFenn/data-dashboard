@@ -30,7 +30,7 @@
                     <button class="store-btn" type="submit">store me in cloud</button>
                     <input type="file" id="pdfUpload" name="pdfUpload" accept="application/pdf" style="display: none;" onchange="handleFileSelect(event, '{{ selected_collection }}')">
                     <label for="pdfUpload" class="upload-btn">upload PDF</label>
-                    <button class="store-btn" type="button" id="processPdfButton" disabled style="background-color: grey; cursor: not-allowed;">process PDF</button>
+                    <button class="store-btn" type="button" id="processPdfButton" disabled style="background-color: grey; cursor: not-allowed;">extract quotes</button>
                     <textarea id="itemTextarea" name="item" placeholder="manually enter quote from {{ selected_collection }}" rows="3" autocomplete="off"></textarea>
                 </div>
             </form>
@@ -76,15 +76,33 @@
         function downloadCSV(collectionName) {
             window.location.href = `/download/${collectionName}`;
         }
-    function handleFileSelect(event, collectionName) {
-        var selectedFile = event.target.files[0];
-        if (selectedFile) {
+        function handleFileSelect(event, collectionName) {
+            var selectedFile = event.target.files[0];
+            if (selectedFile) {
             var processPdfButton = document.getElementById('processPdfButton');
             processPdfButton.disabled = false;
             processPdfButton.style.backgroundColor = ""; // Reset to default color
             processPdfButton.style.cursor = "pointer"; // Change cursor to indicate it's clickable
+                var formData = new FormData();
+                formData.append('pdfUpload', selectedFile);
+
+                fetch('/process_pdf', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Handle response data, e.g., show success or error message
+                    console.log(data);
+                    if (data.message) {
+                        document.getElementById('apiResponse').innerHTML = data.message;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
         }
-    }
 
         document.getElementById('itemTextarea').addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -121,7 +139,10 @@
             const processPdfButton = this;
             const colorCycleIntervalId = startColorCycle(processPdfButton);
 
-            var eventSource = new EventSource('/process_pdf');
+            // Clear existing content in apiResponse
+            document.getElementById('apiResponse').innerHTML = '';
+
+            var eventSource = new EventSource('/stream_stuff');
             eventSource.onmessage = function(event) {
                 console.log("Received data:", event.data);
                 var response = JSON.parse(event.data);
@@ -135,7 +156,6 @@
 
             eventSource.onerror = function(error) {
                 console.log("Error during streaming:", error);
-                document.getElementById('apiResponse').innerHTML += "Error during streaming";
                 stopColorCycle(processPdfButton, colorCycleIntervalId);
                 processPdfButton.disabled = true;
                 processPdfButton.style.backgroundColor = "grey";
