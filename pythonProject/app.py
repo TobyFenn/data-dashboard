@@ -43,6 +43,8 @@ def index():
 
 @app.route('/process_pdf', methods=['POST'])
 def process_pdf():
+    global extracted_text_global
+
     session.pop('extracted_text', None)
 
     # Check if the post request has the file part
@@ -57,23 +59,25 @@ def process_pdf():
     if file and allowed_file(file.filename):
         try:
             text = extract_text_from_pdf(file)
-            # Store the extracted text as you need, e.g., in a session
-            app.logger.info(f"Storing text in session: {text[:100]}...")  # Log first 100 characters
+            app.logger.info(f"Storing text in global variable: {text[:100]}...")  # Log first 100 characters
 
-            session['extracted_text'] = text
+            extracted_text_global = text
             return jsonify({'message': 'Successfully processed file', 'text': text}), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
 @app.route('/stream_stuff', methods=['GET'])
 def stream_stuff():
+    global extracted_text_global
 
-    extracted_text = session.get('extracted_text', '')
-    app.logger.info(f"Retrieved text from session for streaming: {extracted_text[:100]}...")  # Log first 100 characters
+    if extracted_text_global:
+        # Truncate the text to fit within the token limit
+        # Assuming an average word length of 5 characters plus a space, 4097 tokens roughly translate to about 6828 characters
+        truncated_text = extracted_text_global[:6828]
 
-    if extracted_text:
+        app.logger.info(f"Using truncated text for streaming: {truncated_text[:100]}...")  # Log first 100 characters
         try:
-            response_stream = call_openai_api(extracted_text)
+            response_stream = call_openai_api(truncated_text)
             if response_stream is None:
                 app.logger.error('No response stream generated.')
                 return jsonify({'error': 'Internal server error'}), 500
@@ -87,8 +91,14 @@ def stream_stuff():
 def call_openai_api(extracted_text):
     try:
         messages = [
-            {'role': 'system', 'content': "You are exclusively focused on listing sentences spoken by a specified celebrity from a PDF document, beginning immediately with the sentences without any introductory statement. You are dedicated to presenting the celebrity's sentences as individual bullet points, strictly without quotation marks or speaker attribution. Your communication style is robotic and direct, exclusively providing the sentences in their original form, based purely on the content of the uploaded PDF. This precision makes you highly suitable for applications like AI model training and other scenarios where a straightforward, unembellished record of a celebrity's statements is required."},
-            {'role': 'user', 'content': extracted_text}
+            {
+                'role': 'system',
+                'content' : 'Please read the provided article and identify the celebrity mentioned. Then, locate and list only the direct quotations spoken by the celebrity, excluding any statements or interpretations made by the journalist or others. Specifically, ensure that the quotations are verbatim and are the exact words spoken by the celebrity. Do not include any analysis, paraphrasing, or context from the article – just the celebrity own words.'
+            },
+            {
+                'role': 'user',
+                'content': extracted_text
+            }
         ]
         stream = openai.chat.completions.create(
             model='gpt-3.5-turbo',
