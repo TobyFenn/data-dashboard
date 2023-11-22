@@ -56,7 +56,7 @@ button, .download-btn {
     padding: 10px;
     margin-bottom: 0;
     border: none;
-    background-color: #007bff;
+    background-color: ##515587;
     color: white;
     cursor: pointer;
     text-align: center;
@@ -71,7 +71,7 @@ button:hover, .download-btn:hover {
 }
 
 button {
-    background-color: #007bff;
+    background-color: #515587;
 }
 
 .download-btn {
@@ -79,11 +79,11 @@ button {
 }
 
 .store-btn{
-     background-color: #2D9596;
+     background-color: #515587;
 }
 
 .upload-btn {
-    background-color: #265073;
+    background-color: #515587;
     padding: 10px;
     border: none;
     color: white;
