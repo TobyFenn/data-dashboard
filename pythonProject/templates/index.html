@@ -104,6 +104,67 @@
             }
         }
 
+document.addEventListener('DOMContentLoaded', function () {
+    var storeButton = document.querySelector('.store-btn');
+    var itemTextarea = document.getElementById('itemTextarea');
+    var apiResponse = document.getElementById('apiResponse');
+
+    console.log('Script loaded. Event listener will be attached.');
+
+    function extractAndLogQuotes(text) {
+    var regex = /(["“])(.*?)["”]/g;
+    var match;
+
+    while ((match = regex.exec(text)) !== null) {
+        var quote = match[0].slice(1, -1); // Remove the surrounding quotes
+        sendQuoteToServer(quote);
+    }
+
+        if (!foundQuotes) {
+            console.log('No quotes found in the text.');
+        }
+    }
+
+    if (storeButton) {
+        storeButton.addEventListener('click', function (event) {
+            var itemText = itemTextarea.value.trim();
+            var apiResponseText = apiResponse.innerText.trim();
+
+            console.log('Button clicked. Checking conditions.');
+
+            if (itemText === '' && apiResponseText !== '') {
+                console.log('Conditions met. Extracting quotes from ' + apiResponseText);
+                extractAndLogQuotes(apiResponseText);
+                event.preventDefault(); // Prevent form submission
+            } else {
+                console.log('Conditions not met. Proceeding with form submission.');
+            }
+        });
+    } else {
+        console.error('Store button not found.');
+    }
+});
+
+function sendQuoteToServer(quote) {
+    var selectedCollection = '{{ selected_collection }}'; // Make sure this variable is correctly set
+    fetch('/store_quote', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ quote: quote, collection: selectedCollection })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Quote stored:', data);
+    })
+    .catch(error => console.error('Error storing quote:', error));
+}
+
+
+
+
+
         document.getElementById('itemTextarea').addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault(); // Prevent a newline from being added

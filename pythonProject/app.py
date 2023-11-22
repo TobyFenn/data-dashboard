@@ -87,6 +87,19 @@ def stream_stuff():
             return jsonify({'error': str(e)}), 500
     else:
         return jsonify({'message': 'No text extracted from PDF'}), 200
+@app.route('/store_quote', methods=['POST'])
+def store_quote():
+    try:
+        data = request.get_json()
+        quote = data['quote']
+        collection_name = data['collection']
+        if quote:
+            db.collection(collection_name).add({'item': quote})
+            return jsonify({'message': 'Quote stored successfully'}), 200
+        else:
+            return jsonify({'error': 'No quote provided'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 def call_openai_api(extracted_text):
     try:
