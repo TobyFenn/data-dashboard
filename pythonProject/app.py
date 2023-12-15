@@ -7,27 +7,41 @@ import traceback
 import openai
 import json
 import fitz
+import os
 
-# Initialize Firebase Admin
-cred = credentials.Certificate("celeb-data-a3288-firebase-adminsdk-2ujgb-bfddc51066.json")
+# Environment variable loading for development purposes
+from dotenv import load_dotenv
+load_dotenv()
+
+# Firebase Admin Initialization
+cred = credentials.Certificate(os.environ['FIREBASE_CREDENTIALS'])
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 # Initialize Flask App
 app = Flask(__name__)
-app.secret_key = 'genies'  # Replace 'your_secret_key' with a real secret key
+app.secret_key = os.environ['FLASK_SECRET_KEY']
 
-# Set your OpenAI API key
-openai.api_key = "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"
+# Set OpenAI API key
+openai.api_key = os.environ['OPENAI_API_KEY']
 
+# Global variable to hold extracted text
 extracted_text_global = ""
 
-
+# Main
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    collections = [col.id for col in db.collections()]  # Fetch all collection names
+    """
+    Main route for displaying and handling the dashboard.
+    Supports both GET and POST requests.
+    GET: Displays the dashboard with data from the selected collection.
+    POST: Handles adding new items to the collection.
+    """
+    # Fetching collection names from Firestore
+    collections = [col.id for col in db.collections()]
     selected_collection = request.args.get('collection') or collections[0]
 
+    # Handling form submission
     if request.method == 'POST':
         item = request.form.get('item')
         if item:
@@ -35,25 +49,30 @@ def index():
         # Redirect while preserving the selected collection
         return redirect(url_for('index', collection=selected_collection))
 
+    # Fetching items from the selected collection
     items = db.collection(selected_collection).stream()
     data = [doc.to_dict() for doc in items]
 
+    # Rendering the index template with the fetched data
     return render_template('index.html', collections=collections, selected_collection=selected_collection, items=data)
 
 
+# processing files
 @app.route('/process_pdf', methods=['POST'])
 def process_pdf():
+    """
+    Endpoint to handle the processing of uploaded PDF files.
+    Extracts text from the PDF and stores it globally for further processing.
+    """
     global extracted_text_global
 
+    # Clearing any previously stored text
     session.pop('extracted_text', None)
 
-    # Check if the post request has the file part
-
+    # Handling file upload
     if 'pdfUpload' not in request.files:
         return jsonify({'error': 'No file part'}), 400
     file = request.files['pdfUpload']
-    # If the user does not select a file, the browser submits an
-    # empty file without a filename.
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     if file and allowed_file(file.filename):
@@ -66,16 +85,17 @@ def process_pdf():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
+# Streaming endpoint
 @app.route('/stream_stuff', methods=['GET'])
 def stream_stuff():
+    """
+    Endpoint for streaming the processing of extracted text using OpenAI API.
+    Returns a streaming response.
+    """
     global extracted_text_global
 
     if extracted_text_global:
-        # Truncate the text to fit within the token limit
-        # Assuming an average word length of 5 characters plus a space, 4097 tokens roughly translate to about 6828 characters
-        truncated_text = extracted_text_global[:6828]
-
-        app.logger.info(f"Using truncated text for streaming: {truncated_text[:100]}...")  # Log first 100 characters
+        truncated_text = extracted_text_global[:6828]  # Truncating text for OpenAI API limits
         try:
             response_stream = call_openai_api(truncated_text)
             if response_stream is None:
@@ -87,8 +107,14 @@ def stream_stuff():
             return jsonify({'error': str(e)}), 500
     else:
         return jsonify({'message': 'No text extracted from PDF'}), 200
+
+# Route for storing quotes in Firestore
 @app.route('/store_quote', methods=['POST'])
 def store_quote():
+    """
+    Endpoint to store extracted quotes into a specific Firestore collection.
+    Expects a quote and collection name in the request body.
+    """
     try:
         data = request.get_json()
         quote = data['quote']
@@ -101,7 +127,12 @@ def store_quote():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# call OpenAI API
 def call_openai_api(extracted_text):
+    """
+    Calls the OpenAI API to process the extracted text.
+    Generates a stream of responses based on the text.
+    """
     try:
         messages = [
             {
@@ -131,21 +162,32 @@ def call_openai_api(extracted_text):
         traceback.print_exc()
         return None
 
+# Extractor
 def extract_text_from_pdf(file_stream):
-    # Extract text from a PDF file stream using PyMuPDF
+    """
+    Extracts text from a PDF file stream using PyMuPDF.
+    """
     doc = fitz.open(stream=file_stream.read(), filetype="pdf")
     text = ""
     for page in doc:
         text += page.get_text()
     return text
 
+# Checks for validity
 def allowed_file(filename):
+    """
+    Checks if the uploaded file is a PDF.
+    """
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ['pdf']
 
 
+# Route for downloading
 @app.route('/download/<collection_name>')
 def download_csv(collection_name):
+    """
+    Endpoint to download the contents of a Firestore collection as a CSV file.
+    """
     # Fetch data from Firestore
     docs = db.collection(collection_name).stream()
     data = [doc.to_dict() for doc in docs]
@@ -153,10 +195,10 @@ def download_csv(collection_name):
     # Create a CSV in-memory
     proxy = io.StringIO()
     writer = csv.writer(proxy)
-    writer.writerow(['Item'])  # Header row, adjust as needed
+    writer.writerow(['Item'])
 
     for item in data:
-        writer.writerow([item['item']])  # Adjust based on your data structure
+        writer.writerow([item['item']])
 
     # Create a response
     proxy.seek(0)
